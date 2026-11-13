@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E-Voting Pilkades Desa Bendungan 2026</title>
+  <!-- Library Scanner Kamera QR Code -->
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: #ffffff;
+      color: #111111;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .screen {
+      display: none;
+      width: 100%;
+      max-width: 1050px;
+      animation: fadeIn 0.25s ease-in-out;
+    }
+
+    .screen.active {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ================= 1. LAYAR SCAN QR KAMERA ================= */
+    .scan-card {
+      max-width: 460px;
+      width: 100%;
+      background: #ffffff;
+      border: 2px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 28px 24px;
+      text-align: center;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
+    }
+
+    .scan-card h2 {
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 6px;
+      color: #111111;
+    }
+
+    .scan-card p {
+      font-size: 14px;
+      color: #555555;
+      margin-bottom: 18px;
+    }
+
+    #camera-reader {
+      width: 100%;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 3px solid #111111;
+      background: #000000;
+    }
+
+    .scan-feedback {
+      margin-top: 14px;
+      font-size: 14px;
+      font-weight: 600;
+      min-height: 22px;
+    }
+
+    .text-error { color: #dc2626; }
+    .text-success { color: #16a34a; }
+
+    .btn-retry-cam {
+      margin-top: 12px;
+      background: #111111;
+      color: #ffffff;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: none;
+    }
+
+    /* ================= 2. LAYAR SURAT SUARA ================= */
+    .header-surat {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .logo-pilkades {
+      width: 68px;
+      height: 68px;
+      margin: 0 auto 8px;
+    }
+
+    .header-surat h1 {
+      font-size: 16px;
+      font-weight: 800;
+      line-height: 1.3;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .candidates-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 18px;
+      width: 100%;
+      margin-bottom: 28px;
+    }
+
+    @media (max-width: 850px) {
+      .candidates-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .candidate-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+
+    .candidate-card:hover {
+      transform: translateY(-4px);
+    }
+
+    .candidate-box {
+      width: 100%;
+      aspect-ratio: 3 / 3.7;
+      border: 3px solid #111111;
+      position: relative;
+      background: #ffffff;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      overflow: hidden;
+      transition: all 0.15s ease;
+    }
+
+    .candidate-card.selected .candidate-box {
+      border-color: #0077ff;
+      box-shadow: 0 0 0 4px rgba(0, 119, 255, 0.25);
+      background-color: #f0f7ff;
+    }
+
+    .candidate-number {
+      position: absolute;
+      top: 8px;
+      left: 12px;
+      font-size: 36px;
+      font-weight: 900;
+      line-height: 1;
+      color: #111111;
+      font-family: Impact, 'Arial Narrow Bold', sans-serif;
+    }
+
+    .silhouette-svg {
+      width: 88%;
+      height: auto;
+      display: block;
+    }
+
+    .candidate-name {
+      margin-top: 10px;
+      font-size: 16px;
+      font-weight: 800;
+      text-align: center;
+      text-transform: uppercase;
+      color: #111111;
+    }
+
+    .btn-primary-blue {
+      width: 100%;
+      background-color: #0077ff;
+      color: #ffffff;
+      border: none;
+      border-radius: 12px;
+      padding: 18px 24px;
+      font-size: 20px;
+      font-weight: 800;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.2s ease, opacity 0.2s ease;
+    }
+
+    .btn-primary-blue:hover:not(:disabled) {
+      background-color: #0062d6;
+    }
+
+    .btn-primary-blue:disabled {
+      background-color: #93c5fd;
+      cursor: not-allowed;
+    }
+
+    /* ================= 3. LAYAR KONFIRMASI ================= */
+    .confirm-wrapper {
+      width: 100%;
+      max-width: 960px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .confirm-header {
+      width: 100%;
+      text-align: left;
+      margin-bottom: 24px;
+    }
+
+    .confirm-header h2 {
+      font-size: 24px;
+      font-weight: 800;
+      color: #111111;
+      margin-bottom: 4px;
+    }
+
+    .confirm-header p {
+      font-size: 18px;
+      color: #ff1a1a;
+      font-weight: 500;
+    }
+
+    .confirm-card {
+      width: 240px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 36px;
+    }
+
+    .confirm-card .candidate-number {
+      font-size: 46px;
+    }
+
+    .confirm-card .candidate-name {
+      font-size: 24px;
+      margin-top: 12px;
+    }
+
+    .confirm-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      width: 100%;
+    }
+
+    .btn-repeat-red {
+      background-color: #ff0000;
+      color: #ffffff;
+      border: none;
+      border-radius: 12px;
+      padding: 18px 24px;
+      font-size: 22px;
+      font-weight: 800;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .btn-repeat-red:hover {
+      background-color: #d90000;
+    }
+
+    /* ================= 4. POP-UP TERIMA KASIH ================= */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+      padding: 20px;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-box {
+      background: #ffffff;
+      border-radius: 24px;
+      padding: 40px 36px;
+      max-width: 480px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+      animation: popUp 0.25s ease-out;
+    }
+
+    @keyframes popUp {
+      from { transform: scale(0.9); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .check-circle {
+      width: 84px;
+      height: 84px;
+      background-color: #8ce02c;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+    }
+
+    .check-circle svg {
+      width: 46px;
+      height: 46px;
+      stroke: #ffffff;
+      stroke-width: 4;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .modal-box h3 {
+      font-size: 32px;
+      font-weight: 800;
+      color: #111111;
+      margin-bottom: 8px;
+    }
+
+    .modal-box p {
+      font-size: 18px;
+      color: #222222;
+    }
+
+    .reset-note {
+      margin-top: 18px;
+      font-size: 12px;
+      color: #777777;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==================== 1. HALAMAN SCAN BARCODE / QR KAMERA ==================== -->
+  <div id="screen-scan" class="screen active">
+    <div class="scan-card">
+      <h2>SCAN BARCODE PEMILIH</h2>
+      <p>Arahkan kamera ke QR Code resmi untuk membuka Surat Suara</p>
+      
+      <div id="camera-reader"></div>
+      <div id="scan-feedback" class="scan-feedback">Mengaktifkan kamera...</div>
+      <button id="btn-retry-cam" class="btn-retry-cam" onclick="startCameraScanner()">Aktifkan Ulang Kamera</button>
+    </div>
+  </div>
+
+  <!-- ==================== 2. HALAMAN SURAT SUARA ==================== -->
+  <div id="screen-ballot" class="screen">
+    <div class="header-surat">
+      <svg class="logo-pilkades" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="50" cy="50" r="46" fill="#ffffff" stroke="#1e293b" stroke-width="3"/>
+        <circle cx="50" cy="50" r="40" fill="none" stroke="#ca8a04" stroke-width="2"/>
+        <rect x="36" y="34" width="28" height="20" rx="2" fill="#1e3a8a"/>
+        <rect x="42" y="37" width="16" height="3" fill="#ffffff"/>
+        <polygon points="45,20 58,24 53,38 40,34" fill="#f8fafc" stroke="#1e293b" stroke-width="2"/>
+        <rect x="20" y="56" width="60" height="16" rx="3" fill="#ffffff" stroke="#1e293b" stroke-width="2"/>
+        <text x="50" y="67" font-size="10.5" font-weight="900" text-anchor="middle" fill="#111">PILKADES</text>
+        <rect x="28" y="74" width="44" height="10" rx="2" fill="#1e293b"/>
+        <text x="50" y="81.5" font-size="7.5" font-weight="700" text-anchor="middle" fill="#facc15">2026</text>
+      </svg>
+
+      <h1>
+        SURAT SUARA<br>
+        PEMILIHAN KEPALA DESA BENDUNGAN<br>
+        KECAMATAN PAGADEN BARAT<br>
+        KABUPATEN SUBANG<br>
+        TAHUN 2026
+      </h1>
+    </div>
+
+    <div class="candidates-grid" id="candidates-container"></div>
+
+    <button id="btn-choose-candidate" class="btn-primary-blue" disabled>
+      PILIH KANDIDAT INI
+    </button>
+  </div>
+
+  <!-- ==================== 3. HALAMAN KONFIRMASI ==================== -->
+  <div id="screen-confirm" class="screen">
+    <div class="confirm-wrapper">
+      <div class="confirm-header">
+        <h2>Konfirmasi Pemilihan</h2>
+        <p>Apa anda yakin akan memilih kandidat ini?</p>
+      </div>
+
+      <div class="confirm-card" id="confirm-candidate-preview"></div>
+
+      <div class="confirm-actions">
+        <button id="btn-repeat" class="btn-repeat-red">ULANGI</button>
+        <button id="btn-final-submit" class="btn-primary-blue">PILIH</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 4. POP-UP TERIMA KASIH ==================== -->
+  <div id="modal-thanks" class="modal-overlay">
+    <div class="modal-box">
+      <div class="check-circle">
+        <svg viewBox="0 0 52 52">
+          <polyline points="14 27 22 35 38 17" />
+        </svg>
+      </div>
+      <h3>Terima Kasih</h3>
+      <p>Suara berhasil dikirim dan tersimpan.</p>
+      <div class="reset-note">Kembali ke layar scan barcode dalam beberapa detik...</div>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // 1. PENGATURAN QR CODE YANG DIIZINKAN
+    // =========================================================================
+    // Masukkan isi teks/URL persis dari QR Code yang boleh digunakan untuk voting.
+    // Jika dikosongkan (""), sistem akan menampilkan teks QR yang terdeteksi saat di-scan
+    // sehingga Anda bisa menyalinnya ke sini agar 100% terkunci hanya untuk QR tersebut.
+    const ALLOWED_QR_CODE = ""; // Contoh: "PILKADES-BENDUNGAN-2026"
+
+    // =========================================================================
+    // 2. DATA KANDIDAT
+    // =========================================================================
+    const CANDIDATES = [
+      { number: 1, name: "NAMA CALON" },
+      { number: 2, name: "NAMA CALON" },
+      { number: 3, name: "NAMA CALON" },
+      { number: 4, name: "NAMA CALON" },
+      { number: 5, name: "NAMA CALON" }
+    ];
+
+    const silhouetteSVG = `
+      <svg class="silhouette-svg" viewBox="0 0 200 230" xmlns="http://www.w3.org/2000/svg">
+        <path d="M15,230 C15,180 35,165 72,155 L82,148 L118,148 L128,155 C165,165 185,180 185,230 Z" fill="#1e1e1e"/>
+        <polygon points="76,153 100,225 124,153 114,146 86,146" fill="#ffffff"/>
+        <polygon points="94,162 106,162 103,172 108,225 92,225 97,172" fill="#1e1e1e"/>
+        <path d="M84,125 L116,125 L118,152 L82,152 Z" fill="#1e1e1e"/>
+        <path d="M68,85 C68,52 82,40 102,40 C124,40 134,55 134,85 C134,115 120,135 100,135 C80,135 68,115 68,85 Z" fill="#1e1e1e"/>
+        <path d="M67,85 C64,58 75,37 98,37 C115,37 135,46 135,78 C135,83 133,87 132,87 C131,66 122,55 102,55 C84,55 72,64 69,87 Z" fill="#1e1e1e"/>
+        <ellipse cx="67" cy="92" rx="4" ry="9" fill="#1e1e1e"/>
+        <ellipse cx="133" cy="92" rx="4" ry="9" fill="#1e1e1e"/>
+      </svg>
+    `;
+
+    let selectedCandidate = null;
+    let html5QrCode = null;
+    let isScanning = false;
+
+    function showScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+      document.getElementById(screenId).classList.add('active');
+    }
+
+    // =========================================================================
+    // 3. FUNGSI KAMERA SCANNER
+    // =========================================================================
+    async function startCameraScanner() {
+      const feedback = document.getElementById('scan-feedback');
+      const retryBtn = document.getElementById('btn-retry-cam');
+      retryBtn.style.display = 'none';
+      feedback.textContent = "Membuka kamera...";
+      feedback.className = "scan-feedback";
+
+      try {
+        if (!html5QrCode) {
+          html5QrCode = new Html5Qrcode("camera-reader");
+        }
+
+        if (isScanning) {
+          await html5QrCode.stop();
+          isScanning = false;
+        }
+
+        await html5QrCode.start(
+          { facingMode: "environment" },
+          {
+            fps: 10,
+            qrbox: { width: 230, height: 230 }
+          },
+          (decodedText) => {
+            handleQrResult(decodedText.trim());
+          },
+          () => {} // Abaikan frame kosong
+        );
+
+        isScanning = true;
+        feedback.textContent = "Arahkan QR Code ke dalam kotak kamera...";
+      } catch (err) {
+        feedback.textContent = "Gagal mengakses kamera. Pastikan izin kamera aktif & website dibuka lewat HTTPS.";
+        feedback.className = "scan-feedback text-error";
+        retryBtn.style.display = 'inline-block';
+      }
+    }
+
+    async function handleQrResult(scannedText) {
+      const feedback = document.getElementById('scan-feedback');
+
+      // Cek validasi QR
+      const isValid = (ALLOWED_QR_CODE === "" || scannedText === ALLOWED_QR_CODE);
+
+      if (isValid) {
+        feedback.textContent = "QR Code Valid! Membuka surat suara...";
+        feedback.className = "scan-feedback text-success";
+
+        if (html5QrCode && isScanning) {
+          await html5QrCode.stop().catch(() => {});
+          isScanning = false;
+        }
+
+        setTimeout(() => {
+          resetBallot();
+          showScreen('screen-ballot');
+        }, 600);
+      } else {
+        feedback.textContent = `❌ QR Code Tidak Sah! (Terbaca: "${scannedText}")`;
+        feedback.className = "scan-feedback text-error";
+      }
+    }
+
+    // =========================================================================
+    // 4. LOGIKA SURAT SUARA & KONFIRMASI
+    // =========================================================================
+    const container = document.getElementById('candidates-container');
+    const btnChoose = document.getElementById('btn-choose-candidate');
+
+    function renderCandidates() {
+      container.innerHTML = '';
+      CANDIDATES.forEach(cand => {
+        const card = document.createElement('div');
+        card.className = 'candidate-card';
+        card.innerHTML = `
+          <div class="candidate-box">
+            <span class="candidate-number">${cand.number}</span>
+            ${silhouetteSVG}
+          </div>
+          <div class="candidate-name">${cand.name}</div>
+        `;
+
+        card.addEventListener('click', () => {
+          document.querySelectorAll('.candidate-card').forEach(c => c.classList.remove('selected'));
+          card.classList.add('selected');
+          selectedCandidate = cand;
+          btnChoose.disabled = false;
+        });
+
+        container.appendChild(card);
+      });
+    }
+
+    function resetBallot() {
+      selectedCandidate = null;
+      btnChoose.disabled = true;
+      document.querySelectorAll('.candidate-card').forEach(c => c.classList.remove('selected'));
+    }
+
+    btnChoose.addEventListener('click', () => {
+      if (!selectedCandidate) return;
+      document.getElementById('confirm-candidate-preview').innerHTML = `
+        <div class="candidate-box">
+          <span class="candidate-number">${selectedCandidate.number}</span>
+          ${silhouetteSVG}
+        </div>
+        <div class="candidate-name">${selectedCandidate.name}</div>
+      `;
+      showScreen('screen-confirm');
+    });
+
+    document.getElementById('btn-repeat').addEventListener('click', () => {
+      showScreen('screen-ballot');
+    });
+
+    document.getElementById('btn-final-submit').addEventListener('click', () => {
+      showScreen('screen-ballot');
+      const modal = document.getElementById('modal-thanks');
+      modal.classList.add('active');
+
+      // Simpan data suara di penyimpanan lokal browser
+      const votes = JSON.parse(localStorage.getItem('pilkades_bendungan_2026') || '[]');
+      votes.push({
+        nomor: selectedCandidate.number,
+        nama: selectedCandidate.name,
+        waktu: new Date().toISOString()
+      });
+      localStorage.setItem('pilkades_bendungan_2026', JSON.stringify(votes));
+
+      // Otomatis kembali ke kamera scan barcode untuk pemilih berikutnya
+      setTimeout(() => {
+        modal.classList.remove('active');
+        resetBallot();
+        showScreen('screen-scan');
+        startCameraScanner();
+      }, 3500);
+    });
+
+    // Jalankan saat halaman dibuka
+    renderCandidates();
+    startCameraScanner();
+  </script>
+</body>
+</html>
